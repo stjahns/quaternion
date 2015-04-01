@@ -6,6 +6,7 @@
 extern crate vecmath;
 
 use vecmath::Vector3;
+use vecmath::Matrix4;
 use std::num::{Float, FromPrimitive};
 
 /// Quaternion type alias.
@@ -118,6 +119,190 @@ pub fn axis_angle<T: Float + FromPrimitive>(axis: Vector3<T>, angle: T) -> Quate
 }
 
 
+/*
+pub fn matrix_to_quaternion_2(m: &Matrix4<f32>) -> Quaternion<f32> {
+    let mut q = (0.0, [0.0, 0.0, 0.0]);
+    let trace = m[0][0] + m[1][1] + m[2][2];
+
+    // check diagonal
+    if trace > 0.0 {
+
+        let s = (trace + 1.0).sqrt();
+        q.0 = s * 0.5;
+
+        let t = 0.5 / s;
+        //q.1[0] = (m[2][1] - m[1][2]) * t;
+        //q.1[1] = (m[0][2] - m[2][0]) * t;
+        //q.1[2] = (m[1][0] - m[0][1]) * t;
+        //
+        q.1[0] = (m[1][2] - m[2][1]) * t;
+        q.1[1] = (m[2][0] - m[0][2]) * t;
+        q.1[2] = (m[0][1] - m[1][0]) * t;
+
+        println!("!!!!!!!!!!!!!");
+    } else {
+
+        let mut i = 0;
+        if m[1][1] > m[0][0] { i = 1us; }
+        if m[2][2] > m[i][i] { i = 2us; }
+
+        let NEXT = [1us, 2us, 0us];
+        let j = NEXT[i];
+        let k = NEXT[j];
+
+        let s = (m[i][j] - (m[j][j] + m[k][k])).sqrt() + 1.0;
+        q.1[i] = s * 0.5;
+
+        let t = if s != 0.0 { 0.5 / s } else  { s };
+
+        q.0 = (m[k][j] - m[j][k]) * t;
+        q.1[j] = (m[j][i] - m[i][j]) * t;
+        q.1[k] = (m[k][i] - m[i][k]) * t;
+    }
+
+    q
+}
+*/
+
+///
+///*
+pub fn matrix_to_quaternion(m: &Matrix4<f32>) -> Quaternion<f32> {
+    // Ripped off of cgmath...
+    // http://www.cs.ucr.edu/~vbz/resources/quatut.pdf
+    let trace = m[0][0] + m[1][1] + m[2][2];
+    let half = 0.5f32;
+    match () {
+        () if trace >= 0.0 => {
+            let s = (1.0 + trace).sqrt();
+            let w = half * s;
+            let s = half / s;
+            let x = (m[1][2] - m[2][1]) * s;
+            let y = (m[2][0] - m[0][2]) * s;
+            let z = (m[0][1] - m[1][0]) * s;
+            (w, [x, y, z])
+        }
+        () if (m[0][0] > m[1][1]) && (m[0][0] > m[2][2]) => {
+            let s = (half + (m[0][0] - m[1][1] - m[2][2])).sqrt();
+            let w = half * s;
+            let s = half / s;
+            let x = (m[0][1] - m[1][0]) * s;
+            let y = (m[2][0] - m[0][2]) * s;
+            let z = (m[1][2] - m[2][1]) * s;
+            (w, [x, y, z])
+        }
+        () if m[1][1] > m[2][2] => {
+            let s = (half + (m[1][1] - m[0][0] - m[2][2])).sqrt();
+            let w = half * s;
+            let s = half / s;
+            let x = (m[0][1] - m[1][0]) * s;
+            let y = (m[1][2] - m[2][1]) * s;
+            let z = (m[2][0] - m[0][2]) * s;
+            (w, [x, y, z])
+        }
+        () => {
+            let s = (half + (m[2][2] - m[0][0] - m[1][1])).sqrt();
+            let w = half * s;
+            let s = half / s;
+            let x = (m[2][0] - m[0][2]) * s;
+            let y = (m[1][2] - m[2][1]) * s;
+            let z = (m[0][1] - m[1][0]) * s;
+            (w, [x, y, z])
+        }
+    }
+}
+//*/
+
+///
+///
+/*
+pub fn matrix_to_quaternion(m: &Matrix4<f32>) -> Quaternion<f32> {
+    // Ripped off of cgmath, but converted for row-major matrices
+    // http://www.cs.ucr.edu/~vbz/resources/quatut.pdf
+    let trace = m[0][0] + m[1][1] + m[2][2];
+    let half = 0.5f32;
+    match () {
+        () if trace >= 0.0 => {
+            let s = (1.0 + trace).sqrt();
+            let w = half * s;
+            let s = half / s;
+            let x = (m[2][1] - m[1][2]) * s;
+            let y = (m[0][2] - m[2][0]) * s;
+            let z = (m[1][0] - m[0][1]) * s;
+            (w, [x, y, z])
+        }
+        () if (m[0][0] > m[1][1]) && (m[0][0] > m[2][2]) => {
+            let s = (half + (m[0][0] - m[1][1] - m[2][2])).sqrt();
+            let w = half * s;
+            let s = half / s;
+            let x = (m[1][0] - m[0][1]) * s;
+            let y = (m[0][2] - m[2][0]) * s;
+            let z = (m[2][1] - m[1][2]) * s;
+            (w, [x, y, z])
+        }
+        () if m[1][1] > m[2][2] => {
+            let s = (half + (m[1][1] - m[0][0] - m[2][2])).sqrt();
+            let w = half * s;
+            let s = half / s;
+            let x = (m[1][0] - m[0][1]) * s;
+            let y = (m[2][1] - m[1][2]) * s;
+            let z = (m[0][2] - m[2][0]) * s;
+            (w, [x, y, z])
+        }
+        () => {
+            let s = (half + (m[2][2] - m[0][0] - m[1][1])).sqrt();
+            let w = half * s;
+            let s = half / s;
+            let x = (m[0][2] - m[2][0]) * s;
+            let y = (m[2][1] - m[1][2]) * s;
+            let z = (m[1][0] - m[0][1]) * s;
+            (w, [x, y, z])
+        }
+    }
+}
+*/
+
+///
+pub fn quaternion_to_matrix(q: Quaternion<f32>) -> Matrix4<f32> {
+
+    let w = q.0;
+    let x = q.1[0];
+    let y = q.1[1];
+    let z = q.1[2];
+
+    let x2 = x + x;
+    let y2 = y + y;
+    let z2 = z + z;
+
+    let xx2 = x2 * x;
+    let xy2 = x2 * y;
+    let xz2 = x2 * z;
+
+    let yy2 = y2 * y;
+    let yz2 = y2 * z;
+    let zz2 = z2 * z;
+
+    let sy2 = y2 * w;
+    let sz2 = z2 * w;
+    let sx2 = x2 * w;
+
+    [
+        [1.0 - yy2 - zz2, xy2 + sz2, xz2 - sy2, 0.0],
+        [xy2 - sz2, 1.0 - xx2 - zz2, yz2 + sx2, 0.0],
+        [xz2 + sy2, yz2 - sx2, 1.0 - xx2 - yy2, 0.0],
+        [0.0, 0.0,  0.0,  1.0]
+    ]
+
+    /*
+    [
+        [1.0 - yy2 - zz2, xy2 - sz2, xz2 + sy2, 0.0],
+        [xy2 + sz2, 1.0 - xx2 - zz2, yz2 - sx2, 0.0],
+        [xz2 - sy2, yz2 + sx2, 1.0 - xx2 - yy2, 0.0],
+        [0.0, 0.0,  0.0,  1.0]
+    ]
+    */
+}
+
+
 /// Tests
 #[cfg(test)]
 mod test {
@@ -129,7 +314,7 @@ mod test {
     /// Fudge factor for float equality checks
     static EPSILON: f32 = 0.000001;
 
-    #[test]
+    //#[test]
     fn test_axis_angle() {
         use vecmath::vec3_normalized as normalized;
         let axis: Vector3<f32> = [1.0, 1.0, 1.0];
@@ -142,14 +327,14 @@ mod test {
         assert!((square_len(q) - 1.0).abs() < EPSILON);
     }
 
-    #[test]
+    //#[test]
     fn test_euler_angle() {
         let q: Quaternion<f32> = euler_angles(PI, PI, PI);
         // Should be a unit quaternion
         assert!((square_len(q) - 1.0).abs() < EPSILON);
     }
 
-    #[test]
+    //#[test]
     fn test_rotate_vector_axis_angle() {
         let v: Vector3<f32> = [1.0, 1.0, 1.0];
         let q: Quaternion<f32> = axis_angle([0.0, 1.0, 0.0], PI);
@@ -159,7 +344,7 @@ mod test {
         assert!((rotated[2] - -1.0).abs() < EPSILON);
     }
 
-    #[test]
+    //#[test]
     fn test_rotate_vector_euler_angle() {
         let v: Vector3<f32> = [1.0, 1.0, 1.0];
         let q: Quaternion<f32> = euler_angles(0.0, PI, 0.0);
@@ -170,7 +355,7 @@ mod test {
     }
 
     /// Rotation on axis parallel to vector direction should have no effect
-    #[test]
+    //#[test]
     fn test_rotate_vector_axis_angle_same_axis() {
         use vecmath::vec3_normalized as normalized;
 
@@ -186,5 +371,37 @@ mod test {
         assert!((rotated[0] - 1.0).abs() < EPSILON);
         assert!((rotated[1] - 1.0).abs() < EPSILON);
         assert!((rotated[2] - 1.0).abs() < EPSILON);
+    }
+
+    #[test]
+    fn test_matrix_to_quaternion() {
+
+        let rotate_on_x = [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, (PI/2.0).cos(), (PI/2.0).sin(), 0.0],
+            [0.0, -(PI/2.0).sin(), (PI/2.0).cos(), 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ];
+
+        // row-major...
+        /*
+        let rotate_on_x = [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, (PI/2.0).cos(), -(PI/2.0).sin(), 0.0],
+            [0.0, (PI/2.0).sin(), (PI/2.0).cos(), 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ];
+        */
+
+        let q1: Quaternion<f32> = axis_angle([1.0, 0.0, 0.0], PI/2.0);
+        let q2 = matrix_to_quaternion(&rotate_on_x);
+
+        println!("q1: {:?}", q1);
+        println!("q2: {:?}", q2);
+
+        let m2 = quaternion_to_matrix(q2);
+        println!("m1: {:?}", rotate_on_x);
+        println!("m2: {:?}", m2);
+
     }
 }
